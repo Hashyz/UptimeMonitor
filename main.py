@@ -20,10 +20,17 @@ st.set_page_config(
 
 def get_browser_token():
     try:
-        token = streamlit_js_eval(js_expressions="localStorage.getItem('uptime_session_token')", key="get_token")
-        return token
+        result = streamlit_js_eval(
+            js_expressions="localStorage.getItem('uptime_session_token') || '__NO_TOKEN__'", 
+            key="get_token"
+        )
+        if result is None:
+            return None
+        if result == "__NO_TOKEN__":
+            return ""
+        return result
     except Exception:
-        return None
+        return ""
 
 def set_browser_token(token):
     if token:
@@ -132,22 +139,68 @@ def init_session_state():
         st.session_state.scheduler_initialized = False
     if "session_token" not in st.session_state:
         st.session_state.session_token = None
+    if "session_checked" not in st.session_state:
+        st.session_state.session_checked = False
 
-def restore_session_from_token():
+def check_session_with_loading():
     if st.session_state.user is not None:
-        return
+        return True
     
-    try:
-        token = get_browser_token()
-        
-        if token and token != "null" and token != "":
+    if st.session_state.session_checked:
+        return False
+    
+    token = get_browser_token()
+    
+    if token is None:
+        return None
+    
+    st.session_state.session_checked = True
+    
+    if token and token != "":
+        try:
             user = validate_session(token)
             if user:
                 st.session_state.user = user
                 st.session_state.session_token = token
-                return
-    except Exception:
-        pass
+                return True
+        except Exception:
+            pass
+    
+    return False
+
+def render_loading_screen():
+    st.markdown("""
+    <style>
+        .loading-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 60vh;
+        }
+        .loading-spinner {
+            border: 4px solid #1a1f2e;
+            border-top: 4px solid #4CAF50;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin-bottom: 20px;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .loading-text {
+            color: #888;
+            font-size: 1.2rem;
+        }
+    </style>
+    <div class="loading-container">
+        <div class="loading-spinner"></div>
+        <div class="loading-text">Checking session...</div>
+    </div>
+    """, unsafe_allow_html=True)
 
 def init_scheduler():
     if not st.session_state.scheduler_initialized:
@@ -1264,7 +1317,12 @@ def render_settings():
 
 def main():
     init_session_state()
-    restore_session_from_token()
+    
+    session_status = check_session_with_loading()
+    
+    if session_status is None:
+        render_loading_screen()
+        return
     
     if not is_authenticated():
         render_login_page()
