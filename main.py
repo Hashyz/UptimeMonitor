@@ -3,6 +3,7 @@ import streamlit.components.v1 as components
 from datetime import datetime, timedelta
 import time
 import re
+import json
 from models import Monitor, CheckResult, Incident, Notification, StatusPage, User
 from monitoring import run_check, run_all_checks
 from config import MONITOR_TYPES, MONITOR_INTERVALS, HTTP_METHODS, MONITOR_STATUS, NOTIFICATION_TYPES
@@ -16,6 +17,46 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="expanded"
 )
+
+def get_stored_token():
+    token_component = components.html("""
+    <script>
+        const token = localStorage.getItem('uptime_session_token');
+        const streamlitDoc = window.parent.document;
+        const tokenInput = streamlitDoc.querySelector('input[data-testid="stHiddenInput"]');
+        if (tokenInput) {
+            tokenInput.value = token || '';
+            tokenInput.dispatchEvent(new Event('input', { bubbles: true }));
+        }
+        
+        // Also check URL for token and store it
+        const urlParams = new URLSearchParams(window.parent.location.search);
+        const urlToken = urlParams.get('token');
+        if (urlToken && !token) {
+            localStorage.setItem('uptime_session_token', urlToken);
+            // Clean up URL
+            window.parent.history.replaceState({}, document.title, window.parent.location.pathname);
+        }
+    </script>
+    """, height=0)
+    return token_component
+
+def set_browser_token(token):
+    if token:
+        components.html(f"""
+        <script>
+            localStorage.setItem('uptime_session_token', '{token}');
+            // Clean up URL if token is there
+            window.parent.history.replaceState({{}}, document.title, window.parent.location.pathname);
+        </script>
+        """, height=0)
+
+def clear_browser_token():
+    components.html("""
+    <script>
+        localStorage.removeItem('uptime_session_token');
+    </script>
+    """, height=0)
 
 components.html("""
 <script>
@@ -138,6 +179,8 @@ def restore_session_from_token():
             if user:
                 st.session_state.user = user
                 st.session_state.session_token = token
+                set_browser_token(token)
+                st.query_params.clear()
     except Exception:
         pass
 
@@ -163,6 +206,7 @@ def logout():
         if st.session_state.session_token:
             delete_session(st.session_state.session_token)
         st.query_params.clear()
+        clear_browser_token()
     except Exception:
         pass
     
@@ -250,7 +294,7 @@ def render_login_page():
                             st.session_state.user = result["user"]
                             if result.get("token"):
                                 st.session_state.session_token = result["token"]
-                                st.query_params["token"] = result["token"]
+                                set_browser_token(result["token"])
                             st.success("Login successful! Redirecting...")
                             time.sleep(1)
                             st.rerun()
@@ -282,7 +326,7 @@ def render_login_page():
                             st.session_state.user = result["user"]
                             if result.get("token"):
                                 st.session_state.session_token = result["token"]
-                                st.query_params["token"] = result["token"]
+                                set_browser_token(result["token"])
                             st.success("Account created successfully! Redirecting...")
                             time.sleep(1)
                             st.rerun()
