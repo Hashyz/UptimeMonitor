@@ -59,8 +59,20 @@ The application runs on port 5000 using Streamlit.
 3. **Slack** - Slack incoming webhook notifications
 4. **Telegram** - Telegram bot notifications
 
+## Session Management
+- Uses `streamlit-js-eval` for persistent sessions via browser localStorage
+- Session tokens stored in MongoDB with 30-day expiry
+- Loading screen shows "Checking session..." while validating token
+- Automatic session restoration on page refresh
+
+## Important Notes
+- **NEVER install standalone `bson` package** - It conflicts with `pymongo`'s built-in bson module and causes ImportError
+- `pymongo` includes its own `bson` module, no separate installation needed
+
 ## Recent Changes
 - December 2, 2025: Initial implementation with full monitoring suite
 - December 2, 2025: Moved MongoDB URI to environment variables for security
 - December 2, 2025: Added user authentication system with login/registration
 - December 2, 2025: Applied security fixes - sanitized user sessions, added ownership validation
+- December 2, 2025: Added persistent sessions with localStorage and loading screen
+- December 2, 2025: Fixed bson/pymongo conflict by removing standalone bson package

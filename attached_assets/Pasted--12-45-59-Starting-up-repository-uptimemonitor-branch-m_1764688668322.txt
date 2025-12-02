@@ -1,0 +1,265 @@
+[12:45:59] 🚀 Starting up repository: 'uptimemonitor', branch: 'main', main module: 'main.py'
+
+[12:45:59] 🐙 Cloning repository...
+
+[12:46:01] 🐙 Cloning into '/mount/src/uptimemonitor'...
+
+[12:46:01] 🐙 Cloned repository!
+
+[12:46:01] 🐙 Pulling code changes from Github...
+
+[12:46:02] 📦 Processing dependencies...
+
+Prepared 47 packages in 3.04s
+
+Installed 47 packages in 301ms
+
+ + altair==5.5.0
+
+ + apscheduler==3.11.1
+
+ + attrs==25.4.0
+
+ + bcrypt==5.0.0
+
+ + blinker==1.9.0
+
+ + cachetools==6.2.2
+
+ + certifi==2025.11.12
+
+ + cffi==2.0.0
+
+ + charset-normalizer==3.4.4[2025-12-02 12:46:06.127310] 
+
+ + click==8.3.1
+
+ + cryptography==46.0.3
+
+ + dnspython==2.8.0
+
+ + gitdb==4.0.12
+
+ + gitpython==3.1.45
+
+ + idna==3.11
+
+ +[2025-12-02 12:46:06.127521]  jinja2==3.1.6
+
+ + jsonschema==4.25.1
+
+ + jsonschema-specifications==2025.9.1
+
+ + markupsafe==3.0.3
+
+ + narwhals==2.13.0
+
+ + [2025-12-02 12:46:06.127695] numpy==2.3.5
+
+ + packaging==25.0
+
+ + pandas==2.3.3
+
+ + pillow==12.0.0
+
+ + ping3==5.1.5
+
+ + protobuf==6.33.1
+
+ [2025-12-02 12:46:06.127894] + pyarrow==21.0.0
+
+ + pycparser==2.23
+
+ + pydeck==0.9.1
+
+ + pymongo==4.15.4
+
+ + pyopenssl==25.3.0
+
+ + [2025-12-02 12:46:06.128061] python-dateutil==2.9.0.post0
+
+ + pytz==2025.2
+
+ + referencing==0.37.0
+
+ + requests==2.32.5
+
+ + rpds-py==0.30.0[2025-12-02 12:46:06.128223] 
+
+ + six==1.17.0
+
+ + smmap==5.0.2
+
+ + streamlit==1.51.0
+
+ [2025-12-02 12:46:06.128379] + tenacity==9.1.2
+
+ + toml==0.10.2
+
+ + tornado==6.5.2
+
+ + [2025-12-02 12:46:06.128520] typing-extensions==4.15.0
+
+ + tzdata==2025.2
+
+ + tzlocal==5.3.1
+
+ + urllib3==2.5.0[2025-12-02 12:46:06.128713] 
+
+ + watchdog==6.0.0
+
+[12:46:07] 🐍 Python dependencies were installed from /mount/src/uptimemonitor/uv.lock using uv-sync.
+
+[12:46:07] 📦 WARN: More than one requirements file detected in the repository. Available options: uv-sync /mount/src/uptimemonitor/uv.lock, poetry /mount/src/uptimemonitor/pyproject.toml. Used: uv-sync with /mount/src/uptimemonitor/uv.lock
+
+Check if streamlit is installed
+
+Streamlit is already installed
+
+[12:46:08] 📦 Processed dependencies!
+
+
+
+
+/mount/src/uptimemonitor/main.py:370: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+
+  diff = datetime.utcnow() - last_check
+
+/mount/src/uptimemonitor/main.py:370: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+
+  diff = datetime.utcnow() - last_check
+
+/mount/src/uptimemonitor/main.py:370: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+
+  diff = datetime.utcnow() - last_check
+
+/mount/src/uptimemonitor/main.py:370: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+
+  diff = datetime.utcnow() - last_check
+
+/mount/src/uptimemonitor/main.py:370: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+
+  diff = datetime.utcnow() - last_check
+
+/mount/src/uptimemonitor/main.py:370: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+
+  diff = datetime.utcnow() - last_check
+
+[15:16:37] 🐙 Pulling code changes from Github...
+
+[15:16:38] 📦 Processing dependencies...
+
+2025-12-02 15:16:38.778 Uncaught app execution
+
+Traceback (most recent call last):
+
+  File "/home/adminuser/venv/lib/python3.13/site-packages/streamlit/runtime/scriptrunner/exec_code.py", line 129, in exec_func_with_error_handling
+
+    result = func()
+
+  File "/home/adminuser/venv/lib/python3.13/site-packages/streamlit/runtime/scriptrunner/script_runner.py", line 669, in code_to_exec
+
+    exec(code, module.__dict__)  # noqa: S102
+
+    ~~~~^^^^^^^^^^^^^^^^^^^^^^^
+
+  File "/mount/src/uptimemonitor/main.py", line 6, in <module>
+
+    from streamlit_js_eval import streamlit_js_eval
+
+ModuleNotFoundError: No module named 'streamlit_js_eval'
+
+2025-12-02 15:16:38.937 Uncaught app execution
+
+Traceback (most recent call last):
+
+  File "/home/adminuser/venv/lib/python3.13/site-packages/streamlit/runtime/scriptrunner/exec_code.py", line 129, in exec_func_with_error_handling
+
+    result = func()
+
+  File "/home/adminuser/venv/lib/python3.13/site-packages/streamlit/runtime/scriptrunner/script_runner.py", line 669, in code_to_exec
+
+    exec(code, module.__dict__)  # noqa: S102
+
+    ~~~~^^^^^^^^^^^^^^^^^^^^^^^
+
+  File "/mount/src/uptimemonitor/main.py", line 6, in <module>
+
+    from streamlit_js_eval import streamlit_js_eval
+
+ModuleNotFoundError: No module named 'streamlit_js_eval'
+
+Prepared 2 packages in 1.03s
+
+Installed 2 packages in 2ms
+
+ + bson==0.5.10
+
+ + streamlit-js-eval==0.1.7
+
+[15:16:39] 🐍 Python dependencies were installed from /mount/src/uptimemonitor/uv.lock using uv-sync.
+
+[15:16:39] 📦 WARN: More than one requirements file detected in the repository. Available options: uv-sync /mount/src/uptimemonitor/uv.lock, poetry /mount/src/uptimemonitor/pyproject.toml. Used: uv-sync with /mount/src/uptimemonitor/uv.lock
+
+[15:16:39] 📦 Processed dependencies!
+
+  Stopping...
+
+[15:16:41] 🔌 Disconnecting...
+
+
+
+
+[15:16:42] 🖥 Provisioning machine...
+
+[15:16:42] 🎛 Preparing system...
+
+[15:16:42] ⛓ Spinning up manager process...
+
+[15:16:42] 🔄 Updated app!
+
+2025-12-02 15:16:48.448 Uncaught app execution
+
+Traceback (most recent call last):
+
+  File "/home/adminuser/venv/lib/python3.13/site-packages/streamlit/runtime/scriptrunner/exec_code.py", line 129, in exec_func_with_error_handling
+
+    result = func()
+
+  File "/home/adminuser/venv/lib/python3.13/site-packages/streamlit/runtime/scriptrunner/script_runner.py", line 669, in code_to_exec
+
+    exec(code, module.__dict__)  # noqa: S102
+
+    ~~~~^^^^^^^^^^^^^^^^^^^^^^^
+
+  File "/mount/src/uptimemonitor/main.py", line 7, in <module>
+
+    from models import Monitor, CheckResult, Incident, Notification, StatusPage, User
+
+  File "/mount/src/uptimemonitor/models.py", line 3, in <module>
+
+    from database import (
+
+    ...<7 lines>...
+
+    )
+
+  File "/mount/src/uptimemonitor/database.py", line 1, in <module>
+
+    from pymongo import MongoClient
+
+  File "/home/adminuser/venv/lib/python3.13/site-packages/pymongo/__init__.py", line 91, in <module>
+
+    from pymongo.asynchronous.mongo_client import AsyncMongoClient
+
+  File "/home/adminuser/venv/lib/python3.13/site-packages/pymongo/asynchronous/mongo_client.py", line 64, in <module>
+
+    from pymongo import _csot, common, helpers_shared, periodic_executor
+
+  File "/home/adminuser/venv/lib/python3.13/site-packages/pymongo/common.py", line 39, in <module>
+
+    from bson import SON
+
+ImportError: cannot import name 'SON' from 'bson' (/home/adminuser/venv/lib/python3.13/site-packages/bson/__init__.py)
+
+main
