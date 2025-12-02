@@ -34,13 +34,13 @@ args = "Uptime Monitor"
 name = "Uptime Monitor"
 author = "agent"
 
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "streamlit run main.py"
-waitForPort = 5000
-
 [workflows.workflow.metadata]
 outputType = "webview"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "streamlit run main.py --server.port ${PORT:-5000} --server.address 0.0.0.0"
+waitForPort = 5000
 
 [[ports]]
 localPort = 5000
@@ -50,3 +50,4 @@ externalPort = 80
 
 [userenv.shared]
 MONGODB_URI = "mongodb+srv://mosel80708_db_user:WNhLu7aM4MxMkrEE@reverseauction.dkzr8ey.mongodb.net/?appName=reverseAuction"
+PORT = "5000"
