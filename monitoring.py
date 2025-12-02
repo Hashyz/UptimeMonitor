@@ -383,19 +383,21 @@ def run_check(monitor):
     )
     
     previous_status = monitor.get("status", "pending")
+    user_id = monitor.get("user_id")
     
     if result["status"] == "down" and previous_status != "down":
         Incident.create(
             monitor_id=monitor_id,
             monitor_name=monitor.get("name", "Unknown"),
             incident_type="down",
-            details={"error": result.get("error")}
+            details={"error": result.get("error")},
+            user_id=user_id
         )
     elif result["status"] == "up" and previous_status == "down":
-        ongoing = Incident.get_ongoing()
+        ongoing = Incident.get_ongoing(user_id=user_id)
         for incident in ongoing:
             if incident["monitor_id"] == monitor_id:
-                Incident.resolve(str(incident["_id"]))
+                Incident.resolve(str(incident["_id"]), user_id=user_id)
     
     uptime = CheckResult.calculate_uptime(monitor_id)
     Monitor.update(monitor_id, {
