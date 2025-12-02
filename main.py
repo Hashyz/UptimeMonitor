@@ -3,12 +3,17 @@ import streamlit.components.v1 as components
 from datetime import datetime, timedelta
 import time
 import re
+import extra_streamlit_components as stx
 from models import Monitor, CheckResult, Incident, Notification, StatusPage, User
 from monitoring import run_check, run_all_checks
 from config import MONITOR_TYPES, MONITOR_INTERVALS, HTTP_METHODS, MONITOR_STATUS, NOTIFICATION_TYPES
 from database import get_database
 from scheduler import sync_all_monitors, get_scheduler_status
-from auth import create_user, authenticate_user, get_user_by_email
+from auth import create_user, authenticate_user, get_user_by_email, validate_session, delete_session
+
+@st.cache_resource
+def get_cookie_manager():
+    return stx.CookieManager()
 
 st.set_page_config(
     page_title="Uptime Monitor",
@@ -115,6 +120,33 @@ def init_session_state():
         st.session_state.auth_mode = "login"
     if "scheduler_initialized" not in st.session_state:
         st.session_state.scheduler_initialized = False
+    if "session_token" not in st.session_state:
+        st.session_state.session_token = None
+    if "session_checked" not in st.session_state:
+        st.session_state.session_checked = False
+
+def restore_session_from_cookie():
+    if st.session_state.session_checked:
+        return
+    
+    st.session_state.session_checked = True
+    
+    if st.session_state.user is not None:
+        return
+    
+    try:
+        cookie_manager = get_cookie_manager()
+        cookies = cookie_manager.get_all()
+        
+        if cookies and "session_token" in cookies:
+            token = cookies["session_token"]
+            if token:
+                user = validate_session(token)
+                if user:
+                    st.session_state.user = user
+                    st.session_state.session_token = token
+    except Exception:
+        pass
 
 def init_scheduler():
     if not st.session_state.scheduler_initialized:
@@ -134,7 +166,17 @@ def get_current_user_id():
     return None
 
 def logout():
+    try:
+        cookie_manager = get_cookie_manager()
+        if st.session_state.session_token:
+            delete_session(st.session_state.session_token)
+        cookie_manager.delete("session_token")
+    except Exception:
+        pass
+    
     st.session_state.user = None
+    st.session_state.session_token = None
+    st.session_state.session_checked = False
     st.session_state.page = "dashboard"
     st.rerun()
 
@@ -214,6 +256,13 @@ def render_login_page():
                         result = authenticate_user(login_email, login_password)
                         if result["success"]:
                             st.session_state.user = result["user"]
+                            if result.get("token"):
+                                st.session_state.session_token = result["token"]
+                                try:
+                                    cookie_manager = get_cookie_manager()
+                                    cookie_manager.set("session_token", result["token"], expires_at=datetime.now() + timedelta(days=30))
+                                except Exception:
+                                    pass
                             st.success("Login successful! Redirecting...")
                             time.sleep(1)
                             st.rerun()
@@ -243,6 +292,13 @@ def render_login_page():
                         result = create_user(reg_email, reg_password, reg_name)
                         if result["success"]:
                             st.session_state.user = result["user"]
+                            if result.get("token"):
+                                st.session_state.session_token = result["token"]
+                                try:
+                                    cookie_manager = get_cookie_manager()
+                                    cookie_manager.set("session_token", result["token"], expires_at=datetime.now() + timedelta(days=30))
+                                except Exception:
+                                    pass
                             st.success("Account created successfully! Redirecting...")
                             time.sleep(1)
                             st.rerun()
@@ -1217,6 +1273,7 @@ def render_settings():
 
 def main():
     init_session_state()
+    restore_session_from_cookie()
     
     if not is_authenticated():
         render_login_page()

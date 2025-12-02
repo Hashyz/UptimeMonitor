@@ -7,8 +7,10 @@ requires-python = ">=3.11"
 dependencies = [
     "apscheduler>=3.11.1",
     "bcrypt>=5.0.0",
+    "bson>=0.5.10",
     "certifi>=2025.11.12",
     "dnspython>=2.8.0",
+    "extra-streamlit-components>=0.1.81",
     "ping3>=5.1.5",
     "pymongo>=4.15.4",
     "pyopenssl>=25.3.0",
