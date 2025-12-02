@@ -1,4 +1,5 @@
 import streamlit as st
+import streamlit.components.v1 as components
 from datetime import datetime, timedelta
 import time
 import re
@@ -16,25 +17,32 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-st.markdown("""
-<head>
-    <meta name="description" content="Enterprise-grade uptime monitoring solution. Monitor websites, APIs, and services with real-time alerts, incident tracking, and public status pages.">
-    <meta name="keywords" content="uptime monitor, website monitoring, server monitoring, uptime tracking, status page, incident management, API monitoring">
-    <meta name="author" content="Hashyz">
-    <meta name="robots" content="index, follow">
+components.html("""
+<script>
+    // Inject meta tags into document head
+    const metaTags = [
+        {name: "description", content: "Enterprise-grade uptime monitoring solution. Monitor websites, APIs, and services with real-time alerts, incident tracking, and public status pages."},
+        {name: "keywords", content: "uptime monitor, website monitoring, server monitoring, uptime tracking, status page, incident management, API monitoring"},
+        {name: "author", content: "Hashyz"},
+        {name: "robots", content: "index, follow"},
+        {property: "og:type", content: "website"},
+        {property: "og:title", content: "Uptime Monitor - Enterprise Website Monitoring"},
+        {property: "og:description", content: "Monitor your websites and services with confidence. Real-time alerts, incident tracking, and public status pages."},
+        {property: "og:site_name", content: "Uptime Monitor"},
+        {name: "twitter:card", content: "summary_large_image"},
+        {name: "twitter:title", content: "Uptime Monitor - Enterprise Website Monitoring"},
+        {name: "twitter:description", content: "Monitor your websites and services with confidence. Real-time alerts, incident tracking, and public status pages."}
+    ];
     
-    <!-- Open Graph / Facebook -->
-    <meta property="og:type" content="website">
-    <meta property="og:title" content="Uptime Monitor - Enterprise Website Monitoring">
-    <meta property="og:description" content="Monitor your websites and services with confidence. Real-time alerts, incident tracking, and public status pages.">
-    <meta property="og:site_name" content="Uptime Monitor">
-    
-    <!-- Twitter -->
-    <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:title" content="Uptime Monitor - Enterprise Website Monitoring">
-    <meta name="twitter:description" content="Monitor your websites and services with confidence. Real-time alerts, incident tracking, and public status pages.">
-</head>
-""", unsafe_allow_html=True)
+    metaTags.forEach(tag => {
+        const meta = document.createElement('meta');
+        if (tag.name) meta.setAttribute('name', tag.name);
+        if (tag.property) meta.setAttribute('property', tag.property);
+        meta.setAttribute('content', tag.content);
+        document.head.appendChild(meta);
+    });
+</script>
+""", height=0)
 
 st.markdown("""
 <style>
