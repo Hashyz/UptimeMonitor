@@ -3,7 +3,7 @@ import streamlit.components.v1 as components
 from datetime import datetime, timedelta
 import time
 import re
-import json
+from streamlit_js_eval import streamlit_js_eval
 from models import Monitor, CheckResult, Incident, Notification, StatusPage, User
 from monitoring import run_check, run_all_checks
 from config import MONITOR_TYPES, MONITOR_INTERVALS, HTTP_METHODS, MONITOR_STATUS, NOTIFICATION_TYPES
@@ -18,45 +18,19 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-def get_stored_token():
-    token_component = components.html("""
-    <script>
-        const token = localStorage.getItem('uptime_session_token');
-        const streamlitDoc = window.parent.document;
-        const tokenInput = streamlitDoc.querySelector('input[data-testid="stHiddenInput"]');
-        if (tokenInput) {
-            tokenInput.value = token || '';
-            tokenInput.dispatchEvent(new Event('input', { bubbles: true }));
-        }
-        
-        // Also check URL for token and store it
-        const urlParams = new URLSearchParams(window.parent.location.search);
-        const urlToken = urlParams.get('token');
-        if (urlToken && !token) {
-            localStorage.setItem('uptime_session_token', urlToken);
-            // Clean up URL
-            window.parent.history.replaceState({}, document.title, window.parent.location.pathname);
-        }
-    </script>
-    """, height=0)
-    return token_component
+def get_browser_token():
+    try:
+        token = streamlit_js_eval(js_expressions="localStorage.getItem('uptime_session_token')", key="get_token")
+        return token
+    except Exception:
+        return None
 
 def set_browser_token(token):
     if token:
-        components.html(f"""
-        <script>
-            localStorage.setItem('uptime_session_token', '{token}');
-            // Clean up URL if token is there
-            window.parent.history.replaceState({{}}, document.title, window.parent.location.pathname);
-        </script>
-        """, height=0)
+        streamlit_js_eval(js_expressions=f"localStorage.setItem('uptime_session_token', '{token}')", key="set_token")
 
 def clear_browser_token():
-    components.html("""
-    <script>
-        localStorage.removeItem('uptime_session_token');
-    </script>
-    """, height=0)
+    streamlit_js_eval(js_expressions="localStorage.removeItem('uptime_session_token')", key="clear_token")
 
 components.html("""
 <script>
@@ -158,29 +132,20 @@ def init_session_state():
         st.session_state.scheduler_initialized = False
     if "session_token" not in st.session_state:
         st.session_state.session_token = None
-    if "session_checked" not in st.session_state:
-        st.session_state.session_checked = False
 
 def restore_session_from_token():
-    if st.session_state.session_checked:
-        return
-    
-    st.session_state.session_checked = True
-    
     if st.session_state.user is not None:
         return
     
     try:
-        query_params = st.query_params
-        token = query_params.get("token", None)
+        token = get_browser_token()
         
-        if token:
+        if token and token != "null" and token != "":
             user = validate_session(token)
             if user:
                 st.session_state.user = user
                 st.session_state.session_token = token
-                set_browser_token(token)
-                st.query_params.clear()
+                return
     except Exception:
         pass
 
@@ -205,14 +170,12 @@ def logout():
     try:
         if st.session_state.session_token:
             delete_session(st.session_state.session_token)
-        st.query_params.clear()
         clear_browser_token()
     except Exception:
         pass
     
     st.session_state.user = None
     st.session_state.session_token = None
-    st.session_state.session_checked = False
     st.session_state.page = "dashboard"
     st.rerun()
 
