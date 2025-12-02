@@ -1,11 +1,13 @@
 import streamlit as st
 from datetime import datetime, timedelta
 import time
-from models import Monitor, CheckResult, Incident, Notification, StatusPage
+import re
+from models import Monitor, CheckResult, Incident, Notification, StatusPage, User
 from monitoring import run_check, run_all_checks
 from config import MONITOR_TYPES, MONITOR_INTERVALS, HTTP_METHODS, MONITOR_STATUS, NOTIFICATION_TYPES
 from database import get_database
 from scheduler import sync_all_monitors, get_scheduler_status
+from auth import create_user, authenticate_user, get_user_by_email
 
 st.set_page_config(
     page_title="Uptime Monitor",
@@ -79,11 +81,150 @@ def init_session_state():
         st.session_state.selected_monitor = None
     if "edit_mode" not in st.session_state:
         st.session_state.edit_mode = False
+    if "user" not in st.session_state:
+        st.session_state.user = None
+    if "auth_mode" not in st.session_state:
+        st.session_state.auth_mode = "login"
+
+def is_authenticated():
+    return st.session_state.user is not None
+
+def get_current_user_id():
+    if st.session_state.user:
+        return str(st.session_state.user.get("_id", ""))
+    return None
+
+def logout():
+    st.session_state.user = None
+    st.session_state.page = "dashboard"
+    st.rerun()
+
+def validate_email(email):
+    pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
+    return re.match(pattern, email) is not None
+
+def render_login_page():
+    st.markdown("""
+    <style>
+        .auth-container {
+            max-width: 400px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+        .auth-header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+        .auth-header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+        }
+        .auth-header p {
+            color: #888;
+        }
+        .auth-form {
+            background-color: #1a1f2e;
+            padding: 2rem;
+            border-radius: 10px;
+            border: 1px solid #2d3748;
+        }
+        .auth-tabs {
+            display: flex;
+            margin-bottom: 1.5rem;
+        }
+        .auth-tab {
+            flex: 1;
+            padding: 0.75rem;
+            text-align: center;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            color: #888;
+            transition: all 0.3s;
+        }
+        .auth-tab.active {
+            border-bottom-color: #4CAF50;
+            color: white;
+        }
+        .auth-tab:hover {
+            color: white;
+        }
+    </style>
+    """, unsafe_allow_html=True)
+    
+    col1, col2, col3 = st.columns([1, 2, 1])
+    
+    with col2:
+        st.markdown("<div class='auth-header'><h1>🔍 Uptime Monitor</h1><p>Monitor your services with confidence</p></div>", unsafe_allow_html=True)
+        
+        tab1, tab2 = st.tabs(["🔐 Login", "📝 Register"])
+        
+        with tab1:
+            with st.form("login_form", clear_on_submit=False):
+                st.subheader("Welcome Back")
+                login_email = st.text_input("Email", placeholder="your@email.com", key="login_email")
+                login_password = st.text_input("Password", type="password", placeholder="Enter your password", key="login_password")
+                
+                login_submitted = st.form_submit_button("Sign In", type="primary", use_container_width=True)
+                
+                if login_submitted:
+                    if not login_email or not login_password:
+                        st.error("Please fill in all fields")
+                    elif not validate_email(login_email):
+                        st.error("Please enter a valid email address")
+                    else:
+                        result = authenticate_user(login_email, login_password)
+                        if result["success"]:
+                            st.session_state.user = result["user"]
+                            st.success("Login successful! Redirecting...")
+                            time.sleep(1)
+                            st.rerun()
+                        else:
+                            st.error(result["error"])
+        
+        with tab2:
+            with st.form("register_form", clear_on_submit=False):
+                st.subheader("Create Account")
+                reg_name = st.text_input("Full Name", placeholder="John Doe", key="reg_name")
+                reg_email = st.text_input("Email", placeholder="your@email.com", key="reg_email")
+                reg_password = st.text_input("Password", type="password", placeholder="Create a password (min 6 characters)", key="reg_password")
+                reg_confirm = st.text_input("Confirm Password", type="password", placeholder="Confirm your password", key="reg_confirm")
+                
+                reg_submitted = st.form_submit_button("Create Account", type="primary", use_container_width=True)
+                
+                if reg_submitted:
+                    if not reg_name or not reg_email or not reg_password or not reg_confirm:
+                        st.error("Please fill in all fields")
+                    elif not validate_email(reg_email):
+                        st.error("Please enter a valid email address")
+                    elif len(reg_password) < 6:
+                        st.error("Password must be at least 6 characters long")
+                    elif reg_password != reg_confirm:
+                        st.error("Passwords do not match")
+                    else:
+                        result = create_user(reg_email, reg_password, reg_name)
+                        if result["success"]:
+                            st.session_state.user = result["user"]
+                            st.success("Account created successfully! Redirecting...")
+                            time.sleep(1)
+                            st.rerun()
+                        else:
+                            st.error(result["error"])
+        
+        st.markdown("---")
+        st.markdown("<p style='text-align: center; color: #888;'>Enterprise-grade uptime monitoring solution</p>", unsafe_allow_html=True)
 
 def render_sidebar():
     with st.sidebar:
         st.title("Uptime Monitor")
         st.markdown("---")
+        
+        if is_authenticated():
+            user = st.session_state.user
+            st.markdown(f"👤 **{user.get('name', 'User')}**")
+            st.caption(user.get('email', ''))
+            if st.button("🚪 Logout", use_container_width=True):
+                logout()
+            st.markdown("---")
         
         db = get_database()
         if db is not None:
@@ -134,7 +275,8 @@ def render_sidebar():
 def render_dashboard():
     st.title("Dashboard")
     
-    monitors = Monitor.get_all()
+    user_id = get_current_user_id()
+    monitors = Monitor.get_all(user_id=user_id)
     
     up_count = sum(1 for m in monitors if m.get("status") == "up")
     down_count = sum(1 for m in monitors if m.get("status") == "down")
@@ -217,7 +359,7 @@ def render_dashboard():
         st.markdown("---")
         st.subheader("Recent Incidents")
         
-        incidents = Incident.get_recent(5)
+        incidents = Incident.get_recent(5, user_id=user_id)
         
         if incidents:
             for incident in incidents:
@@ -231,13 +373,15 @@ def render_dashboard():
 def render_monitors():
     st.title("Monitors")
     
+    user_id = get_current_user_id()
+    
     col1, col2 = st.columns([3, 1])
     with col1:
         search = st.text_input("Search monitors", placeholder="Search by name or URL...")
     with col2:
         filter_status = st.selectbox("Filter by status", ["All", "Up", "Down", "Paused"])
     
-    monitors = Monitor.get_all()
+    monitors = Monitor.get_all(user_id=user_id)
     
     if search:
         monitors = [m for m in monitors if search.lower() in m.get("name", "").lower() or search.lower() in m.get("url", "").lower()]
@@ -307,13 +451,13 @@ def render_monitors():
                         
                         if monitor.get("is_paused", False):
                             if st.button("Resume", key=f"resume_{monitor['_id']}"):
-                                Monitor.update(str(monitor["_id"]), {"is_paused": False})
+                                Monitor.update(str(monitor["_id"]), {"is_paused": False}, user_id=user_id)
                                 st.success("Monitor resumed!")
                                 time.sleep(0.5)
                                 st.rerun()
                         else:
                             if st.button("Pause", key=f"pause_{monitor['_id']}"):
-                                Monitor.update(str(monitor["_id"]), {"is_paused": True})
+                                Monitor.update(str(monitor["_id"]), {"is_paused": True}, user_id=user_id)
                                 st.success("Monitor paused!")
                                 time.sleep(0.5)
                                 st.rerun()
@@ -325,7 +469,7 @@ def render_monitors():
                             st.rerun()
                         
                         if st.button("Delete", key=f"delete_{monitor['_id']}", type="secondary"):
-                            Monitor.delete(str(monitor["_id"]))
+                            Monitor.delete(str(monitor["_id"]), user_id=user_id)
                             st.success("Monitor deleted!")
                             time.sleep(0.5)
                             st.rerun()
@@ -434,11 +578,13 @@ def render_add_monitor():
             else:
                 tags_list = [t.strip() for t in tags.split(",") if t.strip()] if tags else []
                 
+                user_id = get_current_user_id()
                 monitor = Monitor.create(
                     name=name,
                     monitor_type=monitor_type,
                     url=url,
                     interval=interval,
+                    user_id=user_id,
                     timeout=timeout,
                     http_method=http_method,
                     expected_status_codes=expected_status_codes,
@@ -474,6 +620,7 @@ def render_add_monitor():
 def render_edit_monitor():
     st.title("Edit Monitor")
     
+    user_id = get_current_user_id()
     monitor_id = st.session_state.selected_monitor
     if not monitor_id:
         st.error("No monitor selected")
@@ -482,7 +629,7 @@ def render_edit_monitor():
             st.rerun()
         return
     
-    monitor = Monitor.get_by_id(monitor_id)
+    monitor = Monitor.get_by_id(monitor_id, user_id=user_id)
     if not monitor:
         st.error("Monitor not found")
         if st.button("Back to Monitors"):
@@ -615,7 +762,7 @@ def render_edit_monitor():
                     "notes": notes
                 }
                 
-                if Monitor.update(monitor_id, updates):
+                if Monitor.update(monitor_id, updates, user_id=user_id):
                     st.success("Monitor updated successfully!")
                     time.sleep(1)
                     st.session_state.page = "monitors"
@@ -630,10 +777,12 @@ def render_edit_monitor():
 def render_incidents():
     st.title("Incidents")
     
+    user_id = get_current_user_id()
+    
     tab1, tab2 = st.tabs(["Ongoing", "History"])
     
     with tab1:
-        ongoing = Incident.get_ongoing()
+        ongoing = Incident.get_ongoing(user_id=user_id)
         
         if not ongoing:
             st.success("No ongoing incidents! All systems operational.")
@@ -655,7 +804,7 @@ def render_incidents():
                     
                     with col3:
                         if st.button("Resolve", key=f"resolve_{incident['_id']}"):
-                            Incident.resolve(str(incident["_id"]))
+                            Incident.resolve(str(incident["_id"]), user_id=user_id)
                             st.success("Incident resolved!")
                             time.sleep(0.5)
                             st.rerun()
@@ -665,7 +814,7 @@ def render_incidents():
     with tab2:
         st.subheader("Incident History")
         
-        history = Incident.get_recent(50)
+        history = Incident.get_recent(50, user_id=user_id)
         resolved = [i for i in history if i.get("status") == "resolved"]
         
         if not resolved:
@@ -692,10 +841,12 @@ def render_incidents():
 def render_status_pages():
     st.title("Status Pages")
     
+    user_id = get_current_user_id()
+    
     tab1, tab2 = st.tabs(["Existing Pages", "Create New"])
     
     with tab1:
-        pages = StatusPage.get_all()
+        pages = StatusPage.get_all(user_id=user_id)
         
         if not pages:
             st.info("No status pages created yet. Create your first public status page!")
@@ -729,7 +880,7 @@ def render_status_pages():
             slug = st.text_input("Page Slug", placeholder="my-status-page")
             description = st.text_area("Description", placeholder="Service status for My Company")
             
-            monitors = Monitor.get_all()
+            monitors = Monitor.get_all(user_id=user_id)
             monitor_options = {str(m["_id"]): m.get("name", "Unknown") for m in monitors}
             
             if monitor_options:
@@ -762,6 +913,7 @@ def render_status_pages():
                             name=name,
                             slug=slug,
                             monitors=selected_monitors,
+                            user_id=user_id,
                             is_public=is_public,
                             password=password if password else None,
                             logo_url=logo_url,
@@ -854,10 +1006,12 @@ def render_view_status_page():
 def render_notifications():
     st.title("Notification Channels")
     
+    user_id = get_current_user_id()
+    
     tab1, tab2 = st.tabs(["Configured Channels", "Add New"])
     
     with tab1:
-        notifications = Notification.get_all()
+        notifications = Notification.get_all(user_id=user_id)
         
         if not notifications:
             st.info("No notification channels configured yet.")
@@ -882,7 +1036,7 @@ def render_notifications():
                     
                     with col2:
                         if st.button("Delete", key=f"delete_notif_{notif['_id']}", type="secondary"):
-                            Notification.delete(str(notif["_id"]))
+                            Notification.delete(str(notif["_id"]), user_id=user_id)
                             st.success("Notification channel deleted!")
                             time.sleep(0.5)
                             st.rerun()
@@ -928,7 +1082,7 @@ def render_notifications():
                 if not name:
                     st.error("Please enter a channel name")
                 else:
-                    notif_id = Notification.create(name, notif_type, config)
+                    notif_id = Notification.create(name, notif_type, config, user_id=user_id)
                     if notif_id:
                         st.success("Notification channel added successfully!")
                         time.sleep(1)
@@ -938,6 +1092,8 @@ def render_notifications():
 
 def render_settings():
     st.title("Settings")
+    
+    user_id = get_current_user_id()
     
     st.subheader("Background Scheduler")
     
@@ -967,7 +1123,7 @@ def render_settings():
         
         col1, col2, col3 = st.columns(3)
         with col1:
-            st.metric("Monitors", len(Monitor.get_all()))
+            st.metric("Monitors", len(Monitor.get_all(user_id=user_id)))
         with col2:
             st.metric("Check Results", db.check_results.count_documents({}))
         with col3:
@@ -978,7 +1134,7 @@ def render_settings():
     st.markdown("---")
     
     st.subheader("Monitor Groups")
-    groups = Monitor.get_groups()
+    groups = Monitor.get_groups(user_id=user_id)
     st.write("Current groups:", ", ".join(groups))
     
     st.markdown("---")
@@ -1022,6 +1178,11 @@ def render_settings():
 
 def main():
     init_session_state()
+    
+    if not is_authenticated():
+        render_login_page()
+        return
+    
     render_sidebar()
     
     page = st.session_state.page

@@ -6,12 +6,52 @@ from database import (
     get_incidents_collection,
     get_notifications_collection,
     get_status_pages_collection,
-    get_settings_collection
+    get_settings_collection,
+    get_users_collection
 )
+
+
+class User:
+    @staticmethod
+    def create(email, password_hash, name):
+        users = get_users_collection()
+        if users is None:
+            return None
+            
+        user = {
+            "email": email.lower(),
+            "password_hash": password_hash,
+            "name": name,
+            "created_at": datetime.utcnow()
+        }
+        
+        try:
+            result = users.insert_one(user)
+            user["_id"] = result.inserted_id
+            return user
+        except Exception:
+            return None
+    
+    @staticmethod
+    def get_by_email(email):
+        users = get_users_collection()
+        if users is None:
+            return None
+        return users.find_one({"email": email.lower()})
+    
+    @staticmethod
+    def get_by_id(user_id):
+        users = get_users_collection()
+        if users is None:
+            return None
+        try:
+            return users.find_one({"_id": ObjectId(user_id)})
+        except Exception:
+            return None
 
 class Monitor:
     @staticmethod
-    def create(name, monitor_type, url, interval=300, **kwargs):
+    def create(name, monitor_type, url, interval=300, user_id=None, **kwargs):
         monitors = get_monitors_collection()
         if monitors is None:
             return None
@@ -21,6 +61,7 @@ class Monitor:
             "type": monitor_type,
             "url": url,
             "interval": interval,
+            "user_id": str(user_id) if user_id else None,
             "status": "pending",
             "last_check": None,
             "last_response_time": None,
@@ -57,39 +98,54 @@ class Monitor:
         return monitor
     
     @staticmethod
-    def get_all():
+    def get_all(user_id=None):
         monitors = get_monitors_collection()
         if monitors is None:
             return []
-        return list(monitors.find().sort("created_at", -1))
+        query = {}
+        if user_id:
+            query["user_id"] = str(user_id)
+        return list(monitors.find(query).sort("created_at", -1))
     
     @staticmethod
-    def get_by_id(monitor_id):
+    def get_by_id(monitor_id, user_id=None):
         monitors = get_monitors_collection()
         if monitors is None:
             return None
-        return monitors.find_one({"_id": ObjectId(monitor_id)})
+        query = {"_id": ObjectId(monitor_id)}
+        if user_id:
+            query["user_id"] = str(user_id)
+        return monitors.find_one(query)
     
     @staticmethod
-    def update(monitor_id, updates):
+    def update(monitor_id, updates, user_id=None):
         monitors = get_monitors_collection()
         if monitors is None:
             return False
         updates["updated_at"] = datetime.utcnow()
+        query = {"_id": ObjectId(monitor_id)}
+        if user_id:
+            query["user_id"] = str(user_id)
         result = monitors.update_one(
-            {"_id": ObjectId(monitor_id)},
+            query,
             {"$set": updates}
         )
         return result.modified_count > 0
     
     @staticmethod
-    def delete(monitor_id):
+    def delete(monitor_id, user_id=None):
         monitors = get_monitors_collection()
         check_results = get_check_results_collection()
         incidents = get_incidents_collection()
         
+        query = {"_id": ObjectId(monitor_id)}
+        if user_id:
+            query["user_id"] = str(user_id)
+        
         if monitors is not None:
-            monitors.delete_one({"_id": ObjectId(monitor_id)})
+            result = monitors.delete_one(query)
+            if result.deleted_count == 0:
+                return False
         if check_results is not None:
             check_results.delete_many({"monitor_id": str(monitor_id)})
         if incidents is not None:
@@ -97,25 +153,34 @@ class Monitor:
         return True
     
     @staticmethod
-    def get_active_monitors():
+    def get_active_monitors(user_id=None):
         monitors = get_monitors_collection()
         if monitors is None:
             return []
-        return list(monitors.find({"is_paused": False}))
+        query = {"is_paused": False}
+        if user_id:
+            query["user_id"] = str(user_id)
+        return list(monitors.find(query))
     
     @staticmethod
-    def get_by_group(group):
+    def get_by_group(group, user_id=None):
         monitors = get_monitors_collection()
         if monitors is None:
             return []
-        return list(monitors.find({"group": group}))
+        query = {"group": group}
+        if user_id:
+            query["user_id"] = str(user_id)
+        return list(monitors.find(query))
     
     @staticmethod
-    def get_groups():
+    def get_groups(user_id=None):
         monitors = get_monitors_collection()
         if monitors is None:
             return ["default"]
-        groups = monitors.distinct("group")
+        query = {}
+        if user_id:
+            query["user_id"] = str(user_id)
+        groups = monitors.distinct("group", query)
         return groups if groups else ["default"]
 
 class CheckResult:
@@ -176,7 +241,7 @@ class CheckResult:
 
 class Incident:
     @staticmethod
-    def create(monitor_id, monitor_name, incident_type="down", details=None):
+    def create(monitor_id, monitor_name, incident_type="down", details=None, user_id=None):
         incidents = get_incidents_collection()
         if incidents is None:
             return None
@@ -184,6 +249,7 @@ class Incident:
         incident = {
             "monitor_id": str(monitor_id),
             "monitor_name": monitor_name,
+            "user_id": str(user_id) if user_id else None,
             "type": incident_type,
             "status": "ongoing",
             "details": details or {},
@@ -196,12 +262,16 @@ class Incident:
         return result.inserted_id
     
     @staticmethod
-    def resolve(incident_id):
+    def resolve(incident_id, user_id=None):
         incidents = get_incidents_collection()
         if incidents is None:
             return False
+        
+        query = {"_id": ObjectId(incident_id)}
+        if user_id:
+            query["user_id"] = str(user_id)
             
-        incident = incidents.find_one({"_id": ObjectId(incident_id)})
+        incident = incidents.find_one(query)
         if incident and incident["status"] == "ongoing":
             resolved_at = datetime.utcnow()
             duration = (resolved_at - incident["created_at"]).total_seconds()
@@ -218,31 +288,38 @@ class Incident:
         return False
     
     @staticmethod
-    def get_ongoing():
+    def get_ongoing(user_id=None):
         incidents = get_incidents_collection()
         if incidents is None:
             return []
-        return list(incidents.find({"status": "ongoing"}).sort("created_at", -1))
+        query = {"status": "ongoing"}
+        if user_id:
+            query["user_id"] = str(user_id)
+        return list(incidents.find(query).sort("created_at", -1))
     
     @staticmethod
-    def get_by_monitor(monitor_id, limit=50):
+    def get_by_monitor(monitor_id, limit=50, user_id=None):
         incidents = get_incidents_collection()
         if incidents is None:
             return []
-        return list(incidents.find(
-            {"monitor_id": str(monitor_id)}
-        ).sort("created_at", -1).limit(limit))
+        query = {"monitor_id": str(monitor_id)}
+        if user_id:
+            query["user_id"] = str(user_id)
+        return list(incidents.find(query).sort("created_at", -1).limit(limit))
     
     @staticmethod
-    def get_recent(limit=50):
+    def get_recent(limit=50, user_id=None):
         incidents = get_incidents_collection()
         if incidents is None:
             return []
-        return list(incidents.find().sort("created_at", -1).limit(limit))
+        query = {}
+        if user_id:
+            query["user_id"] = str(user_id)
+        return list(incidents.find(query).sort("created_at", -1).limit(limit))
 
 class Notification:
     @staticmethod
-    def create(name, notification_type, config):
+    def create(name, notification_type, config, user_id=None):
         notifications = get_notifications_collection()
         if notifications is None:
             return None
@@ -251,6 +328,7 @@ class Notification:
             "name": name,
             "type": notification_type,
             "config": config,
+            "user_id": str(user_id) if user_id else None,
             "enabled": True,
             "created_at": datetime.utcnow()
         }
@@ -259,23 +337,29 @@ class Notification:
         return result.inserted_id
     
     @staticmethod
-    def get_all():
+    def get_all(user_id=None):
         notifications = get_notifications_collection()
         if notifications is None:
             return []
-        return list(notifications.find())
+        query = {}
+        if user_id:
+            query["user_id"] = str(user_id)
+        return list(notifications.find(query))
     
     @staticmethod
-    def delete(notification_id):
+    def delete(notification_id, user_id=None):
         notifications = get_notifications_collection()
         if notifications is None:
             return False
-        notifications.delete_one({"_id": ObjectId(notification_id)})
-        return True
+        query = {"_id": ObjectId(notification_id)}
+        if user_id:
+            query["user_id"] = str(user_id)
+        result = notifications.delete_one(query)
+        return result.deleted_count > 0
 
 class StatusPage:
     @staticmethod
-    def create(name, slug, monitors, custom_domain=None, **kwargs):
+    def create(name, slug, monitors, custom_domain=None, user_id=None, **kwargs):
         pages = get_status_pages_collection()
         if pages is None:
             return None
@@ -285,6 +369,7 @@ class StatusPage:
             "slug": slug,
             "monitors": monitors,
             "custom_domain": custom_domain,
+            "user_id": str(user_id) if user_id else None,
             "is_public": kwargs.get("is_public", True),
             "password": kwargs.get("password", None),
             "custom_css": kwargs.get("custom_css", ""),
@@ -298,11 +383,14 @@ class StatusPage:
         return result.inserted_id
     
     @staticmethod
-    def get_all():
+    def get_all(user_id=None):
         pages = get_status_pages_collection()
         if pages is None:
             return []
-        return list(pages.find())
+        query = {}
+        if user_id:
+            query["user_id"] = str(user_id)
+        return list(pages.find(query))
     
     @staticmethod
     def get_by_slug(slug):

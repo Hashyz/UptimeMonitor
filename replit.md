@@ -22,19 +22,21 @@ A full-featured uptime monitoring application similar to UptimeRobot, built with
 
 ## File Structure
 - `main.py` - Main Streamlit application with all pages
+- `auth.py` - User authentication with bcrypt password hashing
 - `config.py` - Configuration constants and monitor types
 - `database.py` - MongoDB connection and collection management
-- `models.py` - Data models (Monitor, CheckResult, Incident, Notification, StatusPage)
+- `models.py` - Data models (Monitor, CheckResult, Incident, Notification, StatusPage, User)
 - `monitoring.py` - Monitor check implementations (HTTP, Ping, Port, SSL, Domain)
 - `scheduler.py` - Background job scheduler for automated checks
 - `notifications_service.py` - Notification channel implementations
 
 ## MongoDB Collections
-- `monitors` - Monitor configurations
+- `users` - User accounts with bcrypt-hashed passwords
+- `monitors` - Monitor configurations (user-specific)
 - `check_results` - Check history and results
-- `incidents` - Incident records
-- `notifications` - Notification channel configurations
-- `status_pages` - Public status page configurations
+- `incidents` - Incident records (user-specific)
+- `notifications` - Notification channel configurations (user-specific)
+- `status_pages` - Public status page configurations (user-specific)
 - `settings` - Application settings
 
 ## Running the Application
@@ -60,3 +62,5 @@ The application runs on port 5000 using Streamlit.
 ## Recent Changes
 - December 2, 2025: Initial implementation with full monitoring suite
 - December 2, 2025: Moved MongoDB URI to environment variables for security
+- December 2, 2025: Added user authentication system with login/registration
+- December 2, 2025: Applied security fixes - sanitized user sessions, added ownership validation

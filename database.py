@@ -60,3 +60,12 @@ def get_status_pages_collection():
 def get_settings_collection():
     db = get_database()
     return db.settings if db is not None else None
+
+def get_users_collection():
+    db = get_database()
+    if db is not None:
+        if "users" not in db.list_collection_names():
+            db.create_collection("users")
+        db.users.create_index("email", unique=True)
+        return db.users
+    return None
