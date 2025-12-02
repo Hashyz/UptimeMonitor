@@ -5,6 +5,9 @@ import streamlit as st
 
 @st.cache_resource
 def get_database():
+    if not MONGODB_URI:
+        return None
+        
     try:
         client = MongoClient(MONGODB_URI, serverSelectionTimeoutMS=5000)
         client.admin.command('ping')
@@ -29,6 +32,9 @@ def get_database():
         return db
     except ConnectionFailure as e:
         st.error(f"Failed to connect to MongoDB: {e}")
+        return None
+    except Exception as e:
+        st.error(f"Database error: {e}")
         return None
 
 def get_monitors_collection():

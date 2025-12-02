@@ -1,6 +1,6 @@
 import os
 
-MONGODB_URI = os.environ.get("MONGODB_URI", "mongodb+srv://mosel80708_db_user:WNhLu7aM4MxMkrEE@reverseauction.dkzr8ey.mongodb.net/?appName=reverseAuction")
+MONGODB_URI = os.environ.get("MONGODB_URI", "")
 DATABASE_NAME = "uptime_monitor"
 
 MONITOR_TYPES = {

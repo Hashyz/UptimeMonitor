@@ -49,3 +49,8 @@ externalPort = 80
 [[ports]]
 localPort = 35601
 externalPort = 3000
+
+[userenv]
+
+[userenv.shared]
+MONGODB_URI = "mongodb+srv://mosel80708_db_user:WNhLu7aM4MxMkrEE@reverseauction.dkzr8ey.mongodb.net/?appName=reverseAuction"
