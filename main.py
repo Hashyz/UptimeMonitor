@@ -17,6 +17,26 @@ st.set_page_config(
 )
 
 st.markdown("""
+<head>
+    <meta name="description" content="Enterprise-grade uptime monitoring solution. Monitor websites, APIs, and services with real-time alerts, incident tracking, and public status pages.">
+    <meta name="keywords" content="uptime monitor, website monitoring, server monitoring, uptime tracking, status page, incident management, API monitoring">
+    <meta name="author" content="Hashyz">
+    <meta name="robots" content="index, follow">
+    
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="Uptime Monitor - Enterprise Website Monitoring">
+    <meta property="og:description" content="Monitor your websites and services with confidence. Real-time alerts, incident tracking, and public status pages.">
+    <meta property="og:site_name" content="Uptime Monitor">
+    
+    <!-- Twitter -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Uptime Monitor - Enterprise Website Monitoring">
+    <meta name="twitter:description" content="Monitor your websites and services with confidence. Real-time alerts, incident tracking, and public status pages.">
+</head>
+""", unsafe_allow_html=True)
+
+st.markdown("""
 <style>
     .stApp {
         background-color: #0e1117;
