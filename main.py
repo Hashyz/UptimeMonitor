@@ -113,6 +113,17 @@ def init_session_state():
         st.session_state.user = None
     if "auth_mode" not in st.session_state:
         st.session_state.auth_mode = "login"
+    if "scheduler_initialized" not in st.session_state:
+        st.session_state.scheduler_initialized = False
+
+def init_scheduler():
+    if not st.session_state.scheduler_initialized:
+        try:
+            count = sync_all_monitors()
+            st.session_state.scheduler_initialized = True
+            print(f"Scheduler initialized with {count} monitors")
+        except Exception as e:
+            print(f"Failed to initialize scheduler: {e}")
 
 def is_authenticated():
     return st.session_state.user is not None
@@ -1210,6 +1221,8 @@ def main():
     if not is_authenticated():
         render_login_page()
         return
+    
+    init_scheduler()
     
     render_sidebar()
     
